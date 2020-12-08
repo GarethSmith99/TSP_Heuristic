@@ -1,0 +1,168 @@
+#include <iostream>
+#include <fstream>
+#include "utils.h"
+#include "argparser.h"
+#include "solver.h"
+#include "randomTSP.h"
+
+using std::cout;
+using std::endl;
+using std::fixed;
+
+int main(int argc, char *argv[]) {
+
+ std::ifstream i("TSP10.json");
+ json data;
+ i >> data;
+ Graph* G = new Graph(data);
+
+
+  RandomTSP* solver = new RandomTSP(G); //generate random solutions
+  vector< Solution* > my_solutions;
+
+ int iterations=G->get_vertices().size(); //number of solutions to generate
+
+//get randomly generated solutions
+  for( int i = 0; i < iterations; i++ )
+  {
+      solver->solve();
+      my_solutions.push_back(solver->get_solution());
+
+      //cout<<my_solutions[i]<<endl<<endl;
+  }
+
+  int aspir=1000000; //aspiration criteria
+  int maxiter=20;//maximum number of iterations for stop criteria
+  int vertsize=G->get_vertices().size(); //vertices size
+int m=0;
+
+  //Tabu
+  for (int it=0;it<1;it++)  //loop used to localize pointers
+  {
+
+  int iter=2;   //iterations were selection is tabu
+  int T[vertsize][vertsize];    //declare tabu matrix
+
+  for(int i=0;i<vertsize;i++){for(int j=0; j<vertsize;j++){T[i][j]=0;}}//create empty tabu list
+
+ //cout<<"test"<<endl<<endl;
+
+ //list vertices and find a solution
+
+
+
+Solution* sol = my_solutions[1];
+G->print_vertices(sol->get_solution());
+double oldobj=sol->get_objective();
+
+
+
+while (m<maxiter)//iteration loop
+{
+     for (int i=0;i<vertsize;i++)
+     {
+        for (int j=0;j<vertsize;j++)
+            {
+                if (i!=j)//do only if row not equal to column
+                {
+
+
+
+                        //GET VERTICES OF CURRENT SOLUTION???????????
+                        vector<const Vertex *> vertices;
+                        vertices=sol->get_solution();
+                        Solution *s = new Solution(vertices, G);
+                        s->get_objective();
+                        s->swap_vertices(i,j);
+
+                        double newobj=s->get_objective();
+
+
+                    if (newobj-oldobj<aspir)//if swapped values have objective function smaller than aspiration criteria undo swap
+                    {
+                        s->swap_vertices(i, j);
+                    }
+                    else if (T[i][j]>0)//if value still tabu undo swap
+                        {
+                                s->swap_vertices(i, j);
+                        }
+                    else//if criteria met, add values to tabu list with new objective function
+                        {
+                            T[i][j]=iter;
+                            oldobj=newobj;
+                        }
+
+                        m++;
+
+                        for(int i=0;i<vertsize;i++) //reduce values of tabulist
+                            {
+                                for(int j=0; j<vertsize;j++)
+                                {
+                                    if(T[i][j]>0)
+                                    {
+                                        T[i][j]=T[i][j]-1;
+                                    }
+                                }
+                            }
+                            G->print_vertices(s->get_solution());
+                    cout << "Distance: " << s->get_objective() << endl << endl;
+                    }
+                }
+    }
+}
+
+  }
+
+
+  //Partcle Swarm
+
+  int best=0;
+  double bestobj=numeric_limits<double>::max();
+  int error=1;
+  int lambda=0.5;
+  int current =0;
+
+  for (int it=0;it<1;it++)
+  {
+      for( int i = 0; i < my_solutions.size(); i++ )
+        {
+            Solution* sol = my_solutions[i];
+
+            if (sol->get_objective()<bestobj)//determine best solution
+            {
+                best=i;
+                bestobj=sol->get_objective();
+            }
+            //G->print_vertices(sol->get_solution());
+            //cout << "Distance: " << sol->get_objective() << endl << endl;
+        }
+        while((m<maxiter)||(current-best<error))    //iteration loop for PS
+        {
+            Solution* sol = my_solutions[best];
+            sol->get_solution();
+
+            vector<const Vertex *> vertices;
+            vertices=sol->get_solution();
+            Solution *s = new Solution(vertices, G);
+            s->get_objective();
+            for (auto v:vertices)
+            {
+                vector<const Vertex *> xstar;
+
+            }
+
+
+
+
+            m++;
+        }
+
+  }
+
+
+
+
+
+  delete solver;
+  return 0;
+}
